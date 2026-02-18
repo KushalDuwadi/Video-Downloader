@@ -6,7 +6,14 @@ export const getVideoInfo = async (req, res, next) => {
   if (!url) return res.status(400).json({ error: "URL required" });
 
   try {
-    const info = await youtubedl(url, {
+    // normalize YouTube Shorts URLs
+    let normalizedUrl = url;
+    if (url.includes("youtube.com/shorts/")) {
+      const id = url.split("/shorts/")[1].split(/[?&]/)[0];
+      normalizedUrl = `https://www.youtube.com/watch?v=${id}`;
+    }
+
+    const info = await youtubedl(normalizedUrl, {
       dumpSingleJson: true,
       skipDownload: true,
       noWarnings: true,
@@ -34,6 +41,7 @@ export const getVideoInfo = async (req, res, next) => {
       formats,
     });
   } catch (err) {
+    console.log("Error fetching video info:", err.message);
     next(err);
   }
 };
@@ -48,19 +56,26 @@ export const downloadVideo = async (req, res, next) => {
   res.setHeader("Content-Type", "video/mp4");
 
   try {
-    const proc = exec(url, {
+    // normalize Shorts URLs for download too
+    let normalizedUrl = url;
+    if (url.includes("youtube.com/shorts/")) {
+      const id = url.split("/shorts/")[1].split(/[?&]/)[0];
+      normalizedUrl = `https://www.youtube.com/watch?v=${id}`;
+    }
+
+    const proc = exec(normalizedUrl, {
       format: `${format_id}+bestaudio/best`,
       output: "-",
       mergeOutputFormat: "mp4",
       noPart: true,
       noKeepVideo: true,
-      // overrideBinary is handled automatically in utils/ytdlp.js
     });
 
     proc.stdout.pipe(res);
     proc.stderr.on("data", d => console.log(d.toString()));
     proc.on("close", () => res.end());
   } catch (err) {
+    console.log("Error downloading video:", err.message);
     next(err);
   }
 };
