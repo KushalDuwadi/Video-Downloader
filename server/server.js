@@ -1,25 +1,25 @@
 // ......using middle ware controllers and routes in separate files ..........................
 
-import express from "express";
-import cors from "cors";
-import videoRoutes from "./routes/videoRoutes.js";
-import errorHandler from "./middleware/errorHandler.js";
+// import express from "express";
+// import cors from "cors";
+// import videoRoutes from "./routes/videoRoutes.js";
+// import errorHandler from "./middleware/errorHandler.js";
 
-const app = express();
+// const app = express();
 
-app.use(cors());
-app.use(express.json());
+// app.use(cors());
+// app.use(express.json());
 
-app.use("/api", videoRoutes);
+// app.use("/api", videoRoutes);
 
-// global error handler
-app.use(errorHandler);
+// // global error handler
+// app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () =>
-  console.log(`✅ Server running → http://localhost:${PORT}`)
-);
+// app.listen(PORT, () =>
+//   console.log(`✅ Server running → http://localhost:${PORT}`)
+// );
 
 
 
@@ -129,3 +129,23 @@ app.listen(PORT, () =>
 
 
 
+import express from "express";
+import cors from "cors";
+import videoRoutes from "./routes/videoRoutes.js";
+import errorHandler from "./middleware/errorHandler.js";
+import ffmpegPath from "ffmpeg-static";
+
+// Make ffmpeg available for yt-dlp
+process.env.FFMPEG_PATH = ffmpegPath;
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.use("/api", videoRoutes);
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () =>
+  console.log(`✅ Server running → http://localhost:${PORT}`)
+);
