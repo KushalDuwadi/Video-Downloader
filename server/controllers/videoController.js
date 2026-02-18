@@ -1,4 +1,4 @@
-import youtubedl from "../utils/ytdlp.js";
+import youtubedl from "yt-dlp-exec"; // use this directly
 import sanitize from "sanitize-filename";
 
 /* =========================
@@ -9,15 +9,12 @@ export const getVideoInfo = async (req, res, next) => {
   if (!url) return res.status(400).json({ error: "URL required" });
 
   try {
-    // Only add overrideBinary on Linux (Render server)
-    const options = {
+    // No overrideBinary needed
+    const info = await youtubedl(url, {
       dumpSingleJson: true,
       skipDownload: true,
       noWarnings: true,
-    };
-    if (process.platform === "linux") options.overrideBinary = "yt-dlp";
-
-    const info = await youtubedl(url, options);
+    });
 
     const seen = new Set();
     const formats = info.formats
@@ -41,6 +38,7 @@ export const getVideoInfo = async (req, res, next) => {
       formats,
     });
   } catch (err) {
+    console.error("Error fetching video info:", err);
     next(err);
   }
 };
@@ -54,29 +52,23 @@ export const downloadVideo = async (req, res, next) => {
 
   const safeTitle = encodeURIComponent(sanitize(title || "video")) + ".mp4";
 
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${safeTitle}"`
-  );
+  res.setHeader("Content-Disposition", `attachment; filename="${safeTitle}"`);
   res.setHeader("Content-Type", "video/mp4");
 
   try {
-    const options = {
+    const proc = youtubedl.exec(url, {
       format: `${format_id}+bestaudio/best`,
-      output: "-",
+      output: "-", // stream to stdout
       mergeOutputFormat: "mp4",
       noPart: true,
       noKeepVideo: true,
-    };
-    if (process.platform === "linux") options.overrideBinary = "yt-dlp";
+    });
 
-    const proc = youtubedl.exec(url, options);
-
-    proc.stdout.pipe(res);
-    proc.stderr.on("data", d => console.log(d.toString()));
+    proc.stdout.pipe(res); // stream directly to response
+    proc.stderr.on("data", d => console.error(d.toString()));
     proc.on("close", () => res.end());
-
   } catch (err) {
+    console.error("Error downloading video:", err);
     next(err);
   }
 };
