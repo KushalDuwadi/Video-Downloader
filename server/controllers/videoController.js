@@ -9,14 +9,17 @@ export const getVideoInfo = async (req, res, next) => {
   if (!url) return res.status(400).json({ error: "URL required" });
 
   try {
-    const info = await youtubedl(url, {
+    // Only add overrideBinary on Linux (Render server)
+    const options = {
       dumpSingleJson: true,
       skipDownload: true,
       noWarnings: true,
-    });
+    };
+    if (process.platform === "linux") options.overrideBinary = "yt-dlp";
+
+    const info = await youtubedl(url, options);
 
     const seen = new Set();
-
     const formats = info.formats
       .filter(f => f.vcodec !== "none" && f.height)
       .sort((a, b) => b.height - a.height)
@@ -37,7 +40,6 @@ export const getVideoInfo = async (req, res, next) => {
       thumbnail: info.thumbnail,
       formats,
     });
-
   } catch (err) {
     next(err);
   }
@@ -50,9 +52,7 @@ export const downloadVideo = async (req, res, next) => {
   const { url, format_id, title } = req.query;
   if (!url) return res.status(400).send("URL required");
 
-  const safeTitle = encodeURIComponent(
-    sanitize(title || "video")
-  ) + ".mp4";
+  const safeTitle = encodeURIComponent(sanitize(title || "video")) + ".mp4";
 
   res.setHeader(
     "Content-Disposition",
@@ -61,18 +61,19 @@ export const downloadVideo = async (req, res, next) => {
   res.setHeader("Content-Type", "video/mp4");
 
   try {
-    const proc = youtubedl.exec(url, {
+    const options = {
       format: `${format_id}+bestaudio/best`,
       output: "-",
       mergeOutputFormat: "mp4",
       noPart: true,
       noKeepVideo: true,
-    });
+    };
+    if (process.platform === "linux") options.overrideBinary = "yt-dlp";
+
+    const proc = youtubedl.exec(url, options);
 
     proc.stdout.pipe(res);
-
     proc.stderr.on("data", d => console.log(d.toString()));
-
     proc.on("close", () => res.end());
 
   } catch (err) {
