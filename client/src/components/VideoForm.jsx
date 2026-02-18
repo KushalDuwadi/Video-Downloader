@@ -3,8 +3,8 @@ import axios from "axios";
 import { Search, Loader, Link, Youtube, Instagram, Facebook, Music, Twitter, MessageCircle } from "lucide-react";
 
 /*const API = "http://localhost:5000";*/// use this before using middleware routes  controllers in same file server.js
-const API = "http://localhost:5000/api"; // use this after using middleware routes  controllers in separate files server.js
-
+// const API = "http://localhost:5000/api"; // use this after using middleware routes  controllers in separate files server.js
+const API = "https://video-downloader-rawf.onrender.com/api"; // use this for production
 
 export default function VideoForm({ url, setUrl, setVideoInfo }) {
   const [loading, setLoading] = useState(false);
