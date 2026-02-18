@@ -1,19 +1,16 @@
-// import youtubedl from "yt-dlp-exec";
-
-// export default youtubedl;
-
-
-
 import youtubedl from "yt-dlp-exec";
 
-// Create a wrapper for Linux/Render
+// Wrapper to handle Linux/Render automatically
 export default function(url, options = {}) {
-  // Use the bundled binary provided by yt-dlp-exec
   const execOptions = { ...options };
+
+  // Only override binary on Linux (Render)
   if (process.platform === "linux") {
     execOptions.overrideBinary = "./node_modules/yt-dlp-exec/bin/yt-dlp";
   }
+
   return youtubedl(url, execOptions);
 }
 
+// For streaming downloads
 export const exec = youtubedl.exec;
