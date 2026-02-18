@@ -75,7 +75,7 @@
 
 
 
-import youtubedl from "yt-dlp-exec";
+import youtubedl from "../utils/ytdlp.js";
 import sanitize from "sanitize-filename";
 
 export const getVideoInfo = async (req, res, next) => {
@@ -83,12 +83,10 @@ export const getVideoInfo = async (req, res, next) => {
   if (!url) return res.status(400).json({ error: "URL required" });
 
   try {
-    // Use the system-installed yt-dlp on Linux (Render)
     const info = await youtubedl(url, {
       dumpSingleJson: true,
       skipDownload: true,
       noWarnings: true,
-      ...(process.platform === "linux" && { executablePath: "/usr/bin/yt-dlp" }),
     });
 
     const seen = new Set();
@@ -113,7 +111,6 @@ export const getVideoInfo = async (req, res, next) => {
       formats,
     });
   } catch (err) {
-    console.error("yt-dlp failed:", err);
     next(err);
   }
 };
@@ -123,26 +120,24 @@ export const downloadVideo = async (req, res, next) => {
   if (!url) return res.status(400).send("URL required");
 
   const safeTitle = encodeURIComponent(sanitize(title || "video")) + ".mp4";
-
   res.setHeader("Content-Disposition", `attachment; filename="${safeTitle}"`);
   res.setHeader("Content-Type", "video/mp4");
 
   try {
-    const options = {
+    const proc = youtubedl.exec(url, {
       format: `${format_id}+bestaudio/best`,
       output: "-",
       mergeOutputFormat: "mp4",
       noPart: true,
       noKeepVideo: true,
-      ...(process.platform === "linux" && { executablePath: "/usr/bin/yt-dlp" }),
-    };
+      overrideBinary: "./node_modules/yt-dlp-exec/bin/yt-dlp", // use bundled binary
+    });
 
-    const proc = youtubedl.exec(url, options);
     proc.stdout.pipe(res);
     proc.stderr.on("data", d => console.log(d.toString()));
     proc.on("close", () => res.end());
   } catch (err) {
-    console.error("Download failed:", err);
     next(err);
   }
 };
+
